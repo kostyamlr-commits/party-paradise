@@ -126,7 +126,7 @@ export async function getStaticProps({ params }) {
       .order('orders', { ascending: false })
       .limit(16)
     if (error) throw error
-    return { props: { event, guide, products: data || [] }, revalidate: 3600 }
+    return { props: { event, guide, products: data || [] }, revalidate: 60 }
   } catch (e) {
     console.error('event getStaticProps error:', e.message)
     return { props: { event, guide, products: [] }, revalidate: 60 }
