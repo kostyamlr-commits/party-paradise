@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { CAT_LABELS, CAT_GROUPS, GROUP_COLORS } from '../lib/aliexpress'
+import { CAT_LABELS, CAT_GROUPS, GROUP_COLORS, EVENTS, EVENT_LABELS } from '../lib/aliexpress'
 
 export default function Header() {
   const [q, setQ] = useState('')
-  const [open, setOpen] = useState(false)
+  const [catsOpen, setCatsOpen] = useState(false)
+  const [eventsOpen, setEventsOpen] = useState(false)
 
   function handleSearch(e) {
     e.preventDefault()
@@ -18,16 +19,33 @@ export default function Header() {
             🎉 Party <span style={{color:'#ff00e5'}}>Paradise</span>
           </span>
         </a>
-        <form onSubmit={handleSearch} style={{flex:1,maxWidth:400,display:'flex',gap:8,marginRight:'auto'}}>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search party supplies..."
+        <form onSubmit={handleSearch} style={{flex:1,maxWidth:360,display:'flex',gap:8,marginRight:'auto'}}>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products or events..."
             style={{flex:1,height:38,padding:'0 14px',borderRadius:12,border:'1.5px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.03)',backdropFilter:'blur(8px)',color:'#fff',fontSize:14,outline:'none'}}/>
           <button type="submit" style={{height:38,padding:'0 18px',background:'#ff00e5',border:'none',borderRadius:12,color:'#fff',fontWeight:800,cursor:'pointer',fontSize:14}}>Go</button>
         </form>
-        <button onClick={()=>setOpen(o=>!o)} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,color:'#fff',padding:'8px 14px',cursor:'pointer',fontSize:14,fontWeight:700}}>
+        <button onClick={()=>{setEventsOpen(o=>!o); setCatsOpen(false)}} style={{background:'rgba(255,0,229,0.08)',border:'1px solid rgba(255,0,229,0.3)',borderRadius:10,color:'#ff00e5',padding:'8px 14px',cursor:'pointer',fontSize:14,fontWeight:700}}>
+          🎊 Events
+        </button>
+        <button onClick={()=>{setCatsOpen(o=>!o); setEventsOpen(false)}} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:10,color:'#fff',padding:'8px 14px',cursor:'pointer',fontSize:14,fontWeight:700}}>
           ☰ Categories
         </button>
       </div>
-      {open && (
+
+      {eventsOpen && (
+        <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',padding:'20px 16px',maxWidth:1280,margin:'0 auto'}}>
+          <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+            {EVENTS.map(ev => (
+              <a key={ev} href={`/events/${ev}`}
+                style={{padding:'8px 16px',borderRadius:12,fontSize:14,fontWeight:700,color:'#fff',
+                  background:'rgba(255,0,229,0.1)',border:'1px solid rgba(255,0,229,0.35)'}}
+              >{EVENT_LABELS[ev]}</a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {catsOpen && (
         <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',padding:'20px 16px',maxWidth:1280,margin:'0 auto'}}>
           {Object.entries(CAT_GROUPS).map(([group, cats]) => (
             <div key={group} style={{marginBottom:16}}>
