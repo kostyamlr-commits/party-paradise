@@ -1,17 +1,23 @@
-import { queryAPI, CATEGORIES } from '../../lib/aliexpress'
+import { queryAPI, CATEGORY_ENTRIES } from '../../lib/aliexpress'
 import { supabase } from '../../lib/supabase'
 
-// Vercel Cron calls this automatically once a day (see vercel.json).
-// Vercel signs cron requests with the CRON_SECRET as a Bearer token automatically
-// when CRON_SECRET env var is set - https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
+// Vercel Cron calls this once a day. With 40 categories x up to 2 pages each,
+// a single run risks the serverless timeout, so this processes one batch of
+// 10 categories per invocation based on day-of-month, cycling through all 40
+// roughly every 4 days. For an immediate full refresh, call fetch-products.js
+// directly in 4 manual batches instead.
+const BATCH_SIZE = 10
+
 export default async function handler(req, res) {
   const authHeader = req.headers['authorization']
   const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`
   const isManualTrigger = req.query.secret === process.env.CRON_SECRET
+  if (!isVercelCron && !isManualTrigger) return res.status(401).json({ error: 'Unauthorized' })
 
-  if (!isVercelCron && !isManualTrigger) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  const cycleDay = new Date().getDate() % Math.ceil(CATEGORY_ENTRIES.length / BATCH_SIZE)
+  const start = cycleDay * BATCH_SIZE
+  const end = start + BATCH_SIZE
+  const batch = CATEGORY_ENTRIES.slice(start, end)
 
   const { data: existing } = await supabase.from('products').select('title_en')
   const existingTitles = (existing || []).map(p => p.title_en)
@@ -20,7 +26,7 @@ export default async function handler(req, res) {
   const seenIds = new Set()
   const log = {}
 
-  for (const [cat, kws] of Object.entries(CATEGORIES)) {
+  for (const [cat, kws] of batch) {
     log[cat] = []
     for (const kw of kws) {
       try {
@@ -38,10 +44,10 @@ export default async function handler(req, res) {
     }
   }
 
-  if (!all.length) return res.status(200).json({success: false, message: 'No new products found', log})
+  if (!all.length) return res.status(200).json({success: false, message: 'No new products found', batchRange: [start, end], log})
 
   const { error } = await supabase.from('products').upsert(all, {onConflict: 'id'})
   if (error) return res.status(500).json({error: error.message})
 
-  return res.status(200).json({success: true, count: all.length, log})
+  return res.status(200).json({success: true, count: all.length, batchRange: [start, end], log})
 }
